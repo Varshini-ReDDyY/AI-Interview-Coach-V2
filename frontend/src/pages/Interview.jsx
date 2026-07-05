@@ -65,7 +65,7 @@ const [startTime] = useState(Date.now());
       setLoadingAnswer(true);
 
       const res = await axios.post(
-        "http://localhost:5000/api/interview/ideal-answer",
+        "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/ideal-answer",
         {
           question: questions[currentQuestion],
         }
@@ -119,7 +119,7 @@ setIdealAnswers(updated);
   (Date.now() - startTime) / 1000
 );
       const res = await axios.post(
-        "http://localhost:5000/api/interview/submit",
+        "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/submit",
         {
           interviewId,
           questions,
@@ -152,7 +152,7 @@ setIdealAnswers(updated);
     }));
 
     const res = await axios.post(
-      "http://localhost:5000/api/interview/finish-learning",
+      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/finish-learning",
       {
         interviewId,
         answers: learningAnswers,

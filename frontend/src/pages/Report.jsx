@@ -37,7 +37,7 @@ const { interview, attempt } = location.state || {};
     const userId = localStorage.getItem("userId");
 
     const res = await axios.post(
-      "http://localhost:5000/api/interview/create",
+      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/create",
       {
         userId,
         role: interview.role,
@@ -69,7 +69,7 @@ const retakeNewQuestions = async () => {
 
     // Create a new interview
     const createRes = await axios.post(
-      "http://localhost:5000/api/interview/create",
+      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/create",
       {
         userId,
         role: interview.role,
@@ -83,7 +83,7 @@ const retakeNewQuestions = async () => {
 
     // Generate fresh questions
     const genRes = await axios.post(
-      "http://localhost:5000/api/interview/generate",
+      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/generate",
       {
         role: interview.role,
         company: interview.company,
@@ -316,14 +316,10 @@ percentage>=40 ?
 
     <hr />
 
-   {!isLearning && (
-  <>
-    <h4>💬 Your Answer</h4>
-    <p>{item.answer || "No Answer"}</p>
-  </>
-)}
+   
  {!isLearning && (
   <>
+   <h4>💬 Your Answer</h4>
     <p
       style={{
         lineHeight: "1.7",

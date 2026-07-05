@@ -40,7 +40,7 @@ const startInterview = async () => {
 
     // 1. CREATE INTERVIEW
     const createRes = await axios.post(
-      "http://localhost:5000/api/interview/create",
+      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/create",
       {
         userId,
         ...form,
@@ -51,7 +51,7 @@ const startInterview = async () => {
 
     // 2. GENERATE QUESTIONS
     const genRes = await axios.post(
-      "http://localhost:5000/api/interview/generate",
+      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/generate",
       form
     );
 
@@ -102,7 +102,7 @@ const fetchHistory = async () => {
     const userId = localStorage.getItem("userId");
 
     const res = await axios.get(
-      `http://localhost:5000/api/interview/history/${userId}`
+      `https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/history/${userId}`
     );
 
     setHistory(res.data.interviews || []);
@@ -129,7 +129,7 @@ const deleteInterview = async (id) => {
 
   try {
     await axios.delete(
-      `http://localhost:5000/api/interview/delete/${id}`
+      `https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/delete/${id}`
     );
 
     alert("Interview deleted successfully");
