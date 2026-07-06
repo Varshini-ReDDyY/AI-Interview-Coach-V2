@@ -125,17 +125,52 @@ npm start
 
 ---
 
-## 📸 Screenshots
 
-Coming Soon...
 
-- Login Page
-- Dashboard
-- Interview Mode
-- Learning Mode
-- AI Evaluation Report
+# 📸 Application Screenshots
+
+## 🏠 Login Page
+
+![Login](assets/login.png)
 
 ---
+
+## 📝 Register Page
+
+![Register](assets/register.png)
+
+---
+
+## 📊 Dashboard
+
+![Dashboard](assets/dashboard.png)
+
+---
+
+## 🎤 Interview Mode
+
+![Interview](assets/interview.png)
+
+---
+
+## 📖 Learning Mode
+
+![Learning](assets/learning.png)
+
+---
+
+## 📄 Interview Report
+
+![Report](assets/report1.png)
+![Report](assets/report2.png)
+![Report](assets/report3.png)
+![Report](assets/report4.png)
+
+---
+
+## 📚 Learning Report
+
+![Learning Report](assets/learning-history.png)
 
 ## 🔮 Future Enhancements
 
@@ -144,9 +179,6 @@ Coming Soon...
 - Video interview support
 - Resume analysis
 - Company-wise interview sets
-- Coding interview playground
-- Leaderboard
-- Dark mode
 
 ---
 
