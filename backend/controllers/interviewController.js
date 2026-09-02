@@ -1,12 +1,20 @@
+const mongoose = require("mongoose");
 const Interview = require("../models/Interview");
+const ResumeChunk = require("../models/ResumeChunk");
 const generateContent = require("../utils/gemini");
+const extractPdfText = require("../utils/pdfExtractor");
+const chunkText = require("../utils/textChunker");
+const { embedText, embedTexts } = require("../utils/embeddings");
 
 // ======================================
 // CREATE INTERVIEW
 // ======================================
 const createInterview = async (req, res) => {
   try {
-    const interview = await Interview.create(req.body);
+    const interview = await Interview.create({
+      ...req.body,
+      userId: req.userId,
+    });
 
     res.status(201).json({
       success: true,
@@ -22,11 +30,107 @@ const createInterview = async (req, res) => {
 };
 
 // ======================================
+// UPLOAD RESUME (RAG INDEXING)
+// ======================================
+const uploadResume = async (req, res) => {
+  try {
+    const { interviewId } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Resume file is required",
+      });
+    }
+
+    const interview = await Interview.findById(interviewId);
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: "Interview not found",
+      });
+    }
+
+    if (interview.userId.toString() !== req.userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to access this interview",
+      });
+    }
+
+    const text = await extractPdfText(req.file.buffer);
+    const chunks = chunkText(text);
+
+    if (chunks.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Could not extract any text from resume",
+      });
+    }
+
+    const embeddings = await embedTexts(chunks);
+
+    await ResumeChunk.deleteMany({ interviewId });
+
+    await ResumeChunk.insertMany(
+      chunks.map((chunk, index) => ({
+        interviewId,
+        userId: req.userId,
+        chunkIndex: index,
+        text: chunk,
+        embedding: embeddings[index],
+      }))
+    );
+
+    res.json({
+      success: true,
+      chunksIndexed: chunks.length,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ======================================
+// RETRIEVE RELEVANT RESUME SECTIONS
+// ======================================
+const getResumeContext = async (interviewId, role, topic, difficulty) => {
+  const hasResume = await ResumeChunk.exists({ interviewId });
+
+  if (!hasResume) return "";
+
+  const queryText = `${role} ${topic} ${difficulty} projects technologies skills experience`;
+  const queryEmbedding = await embedText(queryText);
+
+  const relevantChunks = await ResumeChunk.aggregate([
+    {
+      $vectorSearch: {
+        index: "resume_vector_index",
+        path: "embedding",
+        queryVector: queryEmbedding,
+        numCandidates: 100,
+        limit: 5,
+        filter: { interviewId: new mongoose.Types.ObjectId(interviewId) },
+      },
+    },
+    { $project: { text: 1 } },
+  ]);
+
+  return relevantChunks.map((chunk) => chunk.text).join("\n\n");
+};
+
+// ======================================
 // GENERATE QUESTIONS
 // ======================================
 const generateQuestions = async (req, res) => {
   try {
     const {
+      interviewId,
       role,
       company,
       experience,
@@ -35,6 +139,21 @@ const generateQuestions = async (req, res) => {
       count,
       purpose,
     } = req.body;
+
+    let resumeContext = "";
+
+    if (interviewId) {
+      resumeContext = await getResumeContext(
+        interviewId,
+        role,
+        topic,
+        difficulty
+      );
+    }
+
+    const resumeBlock = resumeContext
+      ? `\nCandidate Resume Context:\n${resumeContext}\n\nPersonalize the questions around the candidate's actual projects, technologies, and experience from the resume context above wherever relevant.\n`
+      : "";
 
     let prompt = "";
 
@@ -47,7 +166,7 @@ Company: ${company}
 Experience: ${experience}
 Topic: ${topic}
 Difficulty: ${difficulty}
-
+${resumeBlock}
 For EACH question also provide a detailed ideal answer.
 
 Return ONLY valid JSON.
@@ -74,7 +193,7 @@ Company: ${company}
 Experience: ${experience}
 Topic: ${topic}
 Difficulty: ${difficulty}
-
+${resumeBlock}
 Return ONLY the questions.
 One question per line.
 `;
@@ -129,6 +248,13 @@ const submitInterview = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Interview not found",
+      });
+    }
+
+    if (interview.userId.toString() !== req.userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to access this interview",
       });
     }
 
@@ -248,10 +374,8 @@ res.json({
 // ======================================
 const getHistory = async (req, res) => {
   try {
-    const { userId } = req.params;
-
     const interviews = await Interview.find({
-  userId,
+  userId: req.userId,
   "attempts.0": { $exists: true },
 }).sort({
   createdAt: -1,
@@ -324,6 +448,17 @@ const finishLearning = async (req, res) => {
       });
     }
 
+    if (interview.userId.toString() !== req.userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to access this interview",
+      });
+    }
+
+    if (!interview.attempts) {
+      interview.attempts = [];
+    }
+
     const newAttempt = {
       attemptNumber: interview.attempts.length + 1,
       isLearning: true,
@@ -355,7 +490,7 @@ const deleteInterview = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const interview = await Interview.findByIdAndDelete(id);
+    const interview = await Interview.findById(id);
 
     if (!interview) {
       return res.status(404).json({
@@ -363,6 +498,16 @@ const deleteInterview = async (req, res) => {
         message: "Interview not found",
       });
     }
+
+    if (interview.userId.toString() !== req.userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to access this interview",
+      });
+    }
+
+    await ResumeChunk.deleteMany({ interviewId: id });
+    await interview.deleteOne();
 
     res.json({
       success: true,
@@ -380,6 +525,7 @@ const deleteInterview = async (req, res) => {
 };
 module.exports = {
   createInterview,
+  uploadResume,
   generateQuestions,
   submitInterview,
    getHistory,

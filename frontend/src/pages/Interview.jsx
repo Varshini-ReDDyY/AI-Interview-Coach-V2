@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Navbar from "../components/Navbar";
-import axios from "axios";
+import api from "../services/api";
 
 function Interview() {
   const navigate = useNavigate();
@@ -64,12 +64,9 @@ const [startTime] = useState(Date.now());
     try {
       setLoadingAnswer(true);
 
-      const res = await axios.post(
-        "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/ideal-answer",
-        {
-          question: questions[currentQuestion],
-        }
-      );
+      const res = await api.post("/interview/ideal-answer", {
+        question: questions[currentQuestion],
+      });
 
      setIdealAnswer(res.data.idealAnswer);
 
@@ -118,16 +115,12 @@ setIdealAnswers(updated);
       const duration = Math.floor(
   (Date.now() - startTime) / 1000
 );
-      const res = await axios.post(
-        "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/submit",
-        {
-          interviewId,
-          questions,
-          answers,
-          
-    duration,
-        }
-      );
+      const res = await api.post("/interview/submit", {
+        interviewId,
+        questions,
+        answers,
+        duration,
+      });
     console.log("FULL RESPONSE:", res.data);
 
 
@@ -151,13 +144,10 @@ setIdealAnswers(updated);
       idealAnswer: idealAnswers[index],
     }));
 
-    const res = await axios.post(
-      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/finish-learning",
-      {
-        interviewId,
-        answers: learningAnswers,
-      }
-    );
+    const res = await api.post("/interview/finish-learning", {
+      interviewId,
+      answers: learningAnswers,
+    });
 
     navigate("/report", {
       state: {

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import axios from "axios";
+import api from "../services/api";
 import {
   BarChart,
   Bar,
@@ -34,20 +34,14 @@ const { interview, attempt } = location.state || {};
    const isLearning = interview.purpose === "Learning";
   const retakeSameQuestions = async () => {
   try {
-    const userId = localStorage.getItem("userId");
-
-    const res = await axios.post(
-      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/create",
-      {
-        userId,
-        role: interview.role,
-        company: interview.company,
-        experience: interview.experience,
-        topic: interview.topic,
-        difficulty: interview.difficulty,
-        purpose: interview.purpose,
-      }
-    );
+    const res = await api.post("/interview/create", {
+      role: interview.role,
+      company: interview.company,
+      experience: interview.experience,
+      topic: interview.topic,
+      difficulty: interview.difficulty,
+      purpose: interview.purpose,
+    });
 
     navigate("/interview", {
       state: {
@@ -65,35 +59,26 @@ const { interview, attempt } = location.state || {};
 };
 const retakeNewQuestions = async () => {
   try {
-    const userId = localStorage.getItem("userId");
-
     // Create a new interview
-    const createRes = await axios.post(
-      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/create",
-      {
-        userId,
-        role: interview.role,
-        company: interview.company,
-        experience: interview.experience,
-        topic: interview.topic,
-        difficulty: interview.difficulty,
-        purpose: interview.purpose,
-      }
-    );
+    const createRes = await api.post("/interview/create", {
+      role: interview.role,
+      company: interview.company,
+      experience: interview.experience,
+      topic: interview.topic,
+      difficulty: interview.difficulty,
+      purpose: interview.purpose,
+    });
 
     // Generate fresh questions
-    const genRes = await axios.post(
-      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/generate",
-      {
-        role: interview.role,
-        company: interview.company,
-        experience: interview.experience,
-        topic: interview.topic,
-        difficulty: interview.difficulty,
-        purpose: interview.purpose,
-        count: interview.questions.length,
-      }
-    );
+    const genRes = await api.post("/interview/generate", {
+      role: interview.role,
+      company: interview.company,
+      experience: interview.experience,
+      topic: interview.topic,
+      difficulty: interview.difficulty,
+      purpose: interview.purpose,
+      count: interview.questions.length,
+    });
 
     navigate("/interview", {
       state: {

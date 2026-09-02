@@ -7,7 +7,8 @@ An AI-powered interview preparation platform that helps users practice technical
 🔗 https://ai-interview-coach-v2-one.vercel.app
 
 ---
-
+Demo
+https://github.com/Varshini-ReDDyY/AI-Interview-Coach-V2/releases/tag/v1
 ## ✨ Features
 
 ### 🎤 Interview Mode

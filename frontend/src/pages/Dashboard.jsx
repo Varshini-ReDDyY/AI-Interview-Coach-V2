@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import axios from "axios";
+import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import ScoreChart from "../components/ScoreChart";
 
@@ -19,6 +19,7 @@ function Dashboard() {
   });
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
+  const [resumeFile, setResumeFile] = useState(null);
 
   const handleChange = (e) => {
     setForm({
@@ -27,11 +28,13 @@ function Dashboard() {
     });
   };
 
+  const handleResumeChange = (e) => {
+    setResumeFile(e.target.files[0] || null);
+  };
+
 const startInterview = async () => {
   try {
     setLoading(true);
-
-    const userId = localStorage.getItem("userId");
 
     if (!form.role || !form.company) {
       alert("Role and Company required");
@@ -39,21 +42,32 @@ const startInterview = async () => {
     }
 
     // 1. CREATE INTERVIEW
-    const createRes = await axios.post(
-      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/create",
-      {
-        userId,
-        ...form,
-      }
-    );
+    const createRes = await api.post("/interview/create", form);
 
     const interviewId = createRes.data.interviewId;
 
-    // 2. GENERATE QUESTIONS
-    const genRes = await axios.post(
-      "https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/generate",
-      form
-    );
+    // 2. UPLOAD + INDEX RESUME (RAG)
+    if (resumeFile) {
+      const resumeData = new FormData();
+      resumeData.append("interviewId", interviewId);
+      resumeData.append("resume", resumeFile);
+
+      try {
+        await api.post("/interview/upload-resume", resumeData);
+      } catch (err) {
+        console.log(err);
+        alert(
+          err.response?.data?.message ||
+            "Unable to process resume, continuing without personalization"
+        );
+      }
+    }
+
+    // 3. GENERATE QUESTIONS
+    const genRes = await api.post("/interview/generate", {
+      ...form,
+      interviewId,
+    });
 
    let questions = [];
 let learningData = [];
@@ -70,7 +84,7 @@ if (form.purpose === "Learning") {
       return;
     }
 
-    // 3. MOVE TO INTERVIEW PAGE
+    // 4. MOVE TO INTERVIEW PAGE
     navigate("/interview", {
      state: {
   interviewId,
@@ -99,11 +113,7 @@ const calculateAverageScore = (attempts = []) => {
 };
 const fetchHistory = async () => {
   try {
-    const userId = localStorage.getItem("userId");
-
-    const res = await axios.get(
-      `https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/history/${userId}`
-    );
+    const res = await api.get("/interview/history");
 
     setHistory(res.data.interviews || []);
   } catch (err) {
@@ -128,9 +138,7 @@ const deleteInterview = async (id) => {
   if (!confirmDelete) return;
 
   try {
-    await axios.delete(
-      `https://ai-interview-coach-backend-q6ja.onrender.com/api/interview/delete/${id}`
-    );
+    await api.delete(`/interview/delete/${id}`);
 
     alert("Interview deleted successfully");
 
@@ -242,6 +250,23 @@ Practice today. Improve tomorrow 🚀
             </option>
           </select>
         </div>
+
+        <div style={{ marginTop: 20 }}>
+          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+            📄 Resume (optional, PDF) — personalizes your questions
+          </label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={handleResumeChange}
+          />
+          {resumeFile && (
+            <p style={{ marginTop: 6, color: "#16a34a" }}>
+              Selected: {resumeFile.name}
+            </p>
+          )}
+        </div>
+
         <hr></hr>
    <div>
    <button class="btn btn-purple "
